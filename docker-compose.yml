@@ -1,0 +1,40 @@
+# ── Environnement de DÉVELOPPEMENT ───────────────────────────────────────────
+# Utilisation : ./start-dev.sh  (ou docker compose up)
+# Port web : 8080
+
+services:
+
+  web-dev:
+    image: php:8.2-apache
+    container_name: vide-grenier-web-dev
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html        # volume live-reload
+    environment:
+      DB_HOST:     db-dev
+      DB_NAME:     vide_grenier
+      DB_USER:     app_user
+      DB_PASSWORD: secret
+    depends_on:
+      db-dev:
+        condition: service_healthy
+    command: >
+      sh -c "docker-php-ext-install pdo pdo_mysql && apache2-foreground"
+
+  db-dev:
+    image: mysql:8.0
+    container_name: vide-grenier-db-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE:      vide_grenier
+      MYSQL_USER:          app_user
+      MYSQL_PASSWORD:      secret
+    volumes:
+      - ./data/dev:/var/lib/mysql          # persistance données dev
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootsecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
