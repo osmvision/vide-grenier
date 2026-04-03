@@ -1,0 +1,39 @@
+# ── Environnement de PRODUCTION ──────────────────────────────────────────────
+# Utilisation : ./start-prod.sh  (build + run)
+# Port web : 8081  (différent du dev pour coexistence)
+
+services:
+
+  web-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vide-grenier-web:latest
+    container_name: vide-grenier-web-prod
+    ports:
+      - "8081:80"                  # port différent du dev (8080)
+    environment:
+      DB_HOST:     db-prod
+      DB_NAME:     vide_grenier
+      DB_USER:     app_user
+      DB_PASSWORD: secret
+    depends_on:
+      db-prod:
+        condition: service_healthy
+
+  db-prod:
+    image: mysql:8.0
+    container_name: vide-grenier-db-prod
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE:      vide_grenier
+      MYSQL_USER:          app_user
+      MYSQL_PASSWORD:      secret
+    volumes:
+      - ./data/prod:/var/lib/mysql         # persistance données prod (séparée)
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootsecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
